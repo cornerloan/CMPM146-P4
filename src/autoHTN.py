@@ -1,5 +1,6 @@
 import pyhop
 import json
+import inspect
 
 def check_enough(state, ID, item, num):
     if getattr(state, item)[ID] >= num:
@@ -20,7 +21,6 @@ def make_method(name, rule):
     def method(state, ID):
         # your code here
         tasks = []
-
         # Add tasks to check if required items are available
         for item, amount in rule.get('Requires', {}).items():
             tasks.append(('have_enough', ID, item, amount))
@@ -30,10 +30,10 @@ def make_method(name, rule):
             tasks.append(('have_enough', ID, item, amount))
 
         # Add production task
-        tasks.append(('produce', ID, name))
+        new_name = f"op_{name.replace(' ', '_')}"
+        tasks.append((new_name, ID))
 
         return tasks
-
     return method
 
 def declare_methods(data):
@@ -67,14 +67,15 @@ def make_operator(rule):
         for item, amount in rule.get('Consumes', {}).items():            
             if getattr(state, item)[ID] < amount:
                 return False
-
-        # Update state by consuming resources
-        for item, amount in rule.get('Consumes', {}).items():
-            getattr(state, item)[ID] -= amount
+            current_amount = getattr(state, item)
+            current_amount[ID] -= amount
+            setattr(state, item, current_amount)
 
         # Update state by producing output
         for item, amount in rule.get('Produces', {}).items():
-            getattr(state, item)[ID] += amount
+            current_amount = getattr(state, item)
+            current_amount[ID] += amount
+            setattr(state, item, current_amount)
 
         # Update the remaining time
         state.time[ID] -= rule.get('Time', 0)
@@ -99,6 +100,7 @@ def declare_operators(data):
         operators.append(operator)
 
     # Declare this list as valid operators
+    
     pyhop.declare_operators(*operators)
 
 
@@ -111,7 +113,7 @@ def add_heuristic(data, ID):
         # your code here
         
 		# end branch if depth is too far
-        if depth > 10:
+        if depth > 100:
             return True
         return False
 
