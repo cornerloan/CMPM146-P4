@@ -44,18 +44,22 @@ def declare_methods(data):
     
 	# your code here
 	# hint: call make_method, then declare the method to pyhop using pyhop.declare_methods('foo', m1, m2, ..., mk)
-    
-    # Iterate through all the recipes
+    # Organize recipes by the product they produce
+    product_recipes = {}
     for name, rule in data['Recipes'].items():
-        # Create the method with a safe name
-        method = make_method(name, rule)
-        method_name = 'produce_' + list(rule['Produces'].keys())[0]
-        pyhop.declare_methods(method_name, method)
+        for product in rule['Produces']:
+            if product not in product_recipes:
+                product_recipes[product] = []
+            product_recipes[product].append((name, rule))
 
-    # Directly declare a simple method for producing wood using punch_for_wood
-    def produce_wood(state, ID):
-        return [('op_punch_for_wood', ID)]
-    pyhop.declare_methods('produce_wood', produce_wood)
+    # Iterate through each product and sort its recipes by time
+    for product, recipes in product_recipes.items():
+        # Sort the recipes by time (ascending)
+        sorted_recipes = sorted(recipes, key=lambda x: x[1].get('Time', float('inf')))
+        
+        # Create methods for each sorted recipe
+        methods = [make_method(name, rule) for name, rule in sorted_recipes]
+        pyhop.declare_methods(f'produce_{product}', *methods)
 
 def make_operator(rule):
     def operator(state, ID):
