@@ -121,8 +121,27 @@ def add_heuristic(data, ID):
         if depth > 100:
             return True
         return False
+    
+    #prevent recrafting of any tools
+    def avoid_recrafting_tools(state, curr_task, tasks, plan, depth, calling_stack):
+        if curr_task[0].startswith('produce_'):
+            item = curr_task[0].split('_', 1)[1]
+            if item in data['Tools'] and getattr(state, item)[ID] > 0:
+                return True
+        return False
+    
+    #prevent producing and item which would amount to the player having more than 40 of an item
+    def avoid_recrafting_items(state, curr_task, tasks, plan, depth, calling_stack):
+        if curr_task[0].startswith('produce_'):
+            item = curr_task[0].split('_', 1)[1]
+            if item in data['Items'] and getattr(state, item)[ID] > 35:
+                return True
+        return False
+    
 
     pyhop.add_check(heuristic)
+    pyhop.add_check(avoid_recrafting_tools)
+    pyhop.add_check(avoid_recrafting_items)
 
 def set_up_state(data, ID, time=0):
     state = pyhop.State('state')
@@ -167,4 +186,4 @@ if __name__ == '__main__':
     pyhop.pyhop(state, goals, verbose=1)
     # pyhop.pyhop(state, [('have_enough', 'agent', 'cart', 1),('have_enough', 'agent', 'rail', 20)], verbose=3)
 
-    pyhop.print_state(state)
+    # pyhop.print_state(state)
